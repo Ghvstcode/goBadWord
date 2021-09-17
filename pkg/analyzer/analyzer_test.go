@@ -1,7 +1,6 @@
-package wordcount
+package analyzer
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +14,6 @@ func TestAll(t *testing.T) {
 		t.Fatalf("Failed to get wd: %s", err)
 	}
 
-	testdata := filepath.Join(filepath.Dir(filepath.Dir(wd)), "wc")
-	fmt.Println("TestData", testdata)
-	analysistest.Run(t, testdata, NewAnalyzer(), "testdata")
+	testdata := filepath.Join(filepath.Dir(filepath.Dir(wd)), "testdata")
+	analysistest.Run(t, testdata, NewAnalyzer(), "t")
 }
