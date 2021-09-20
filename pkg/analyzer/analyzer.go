@@ -5,20 +5,27 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"reflect"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 )
 
 var (
-	Type    string
-	Name    string
-	flagSet flag.FlagSet
-	count   int
+	badwords     string
+	Type         string
+	Name         string
+	flagSet      flag.FlagSet
+	count        int
+	skipTests    bool
+	userBadWords []string
 )
 
+var defaultBadWords = []string{"fuck", "shit", "damn"}
+
 func init() {
-	flagSet.StringVar(&Type, "Type", "string", "Type of the word to be counted")
-	flagSet.StringVar(&Name, "Id", "string", "Name of the word to be counted")
+	flagSet.BoolVar(&skipTests, "skipTests", true, "should the linter execute on test files as well")
+	userBadWords = flagSet.Args()
 }
 
 func NewAnalyzer() *analysis.Analyzer {
@@ -33,56 +40,101 @@ func NewAnalyzer() *analysis.Analyzer {
 	return an
 }
 
+func remove(s badWord, i int) badWord {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
+}
+
+func appendWithoutDuplicates(bw badWord, nw map[token.Pos]string) badWord {
+	//Range Over badWord slice.
+	for _, el := range bw {
+		//if bad word is equals to new word return s
+		eq := reflect.DeepEqual(el, nw)
+
+		if eq {
+			return bw
+		}
+	}
+	//if not, append the new word to bad word slice & return it.
+	bw = append(bw, nw)
+	return bw
+}
+
+//isTestFunc checks if a function is a test function.
+func isTestFunc(n ast.Node) bool {
+	f, ok := n.(*ast.FuncDecl)
+	if !ok {
+		return false
+	}
+
+	return strings.HasPrefix(f.Name.Name, "Test")
+}
+
 func run(pass *analysis.Pass) (interface{}, error) {
+	fmt.Println(badwords)
+	var s badWord
+	var num int
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
-			val := checkWords(n)
-			fmt.Println(val)
+			_, val := checkWords(n)
+			if n == nil {
+				return true
+			}
+
+			if skipTests && isTestFunc(n) {
+				fmt.Println("Hit Mw")
+				return true
+			}
+
+			num = +len(s)
 			for _, valx := range val {
-				fmt.Println("VALX-", valx)
-				v, ok := valx[n.Pos()]
+				//Check for duplicates before appending.
+				s = appendWithoutDuplicates(s, valx)
+			}
+
+			for i, sValx := range s {
+				v, ok := sValx[n.Pos()]
 				if ok {
-					fmt.Println("POSITION:", n.Pos(), v)
-
+					//Removeitem from general array
+					s = remove(s, i)
+					pass.Reportf(n.Pos(), "Bad Word Found - %s", v)
 				}
-				return true
-				//fmt.Println("POSITION:", n.Pos(), valx[n.Pos()])
-
 			}
-			if len(val) > 0 {
-				return true
-				//pass.Reportf(n.Pos(), "Value Of all Words %d", val)
-			}
-
-			fmt.Printf("RESULT %s:\t%b\n", pass.Fset.Position(n.Pos()), count)
 			return true
 		})
-		return nil, nil
 	}
+	fmt.Printf("RESULT: a total of %d bad words were found", num)
 	return nil, nil
 }
 
 type badWord []map[token.Pos]string
 
 type treeVisitor struct {
-	badWordArray badWord
+	badWordArray   badWord
+	badWordCounter int
 }
 
-func checkWords(fn ast.Node) badWord {
+func checkWords(fn ast.Node) (int, badWord) {
 	if fn == nil {
-		return nil
+		return 0, nil
 	}
 
 	v := treeVisitor{}
 	ast.Walk(&v, fn)
-	return v.badWordArray
+	return v.badWordCounter, v.badWordArray
 }
 
 func isBadWord(word string) bool {
-	//Takes in a word, loops through the array of curse words,
+	//Check if user provided args
+	if len(userBadWords) > 0 {
+		//If yes, remove file paths/name.
+		//Check for strings that contains "/" or ".go"
+	}
+	//Takes in a word, loops through the array of bad words,
 	//If the received parameter is in the array return true.
 	return true
 }
+
 func (v *treeVisitor) addWordToSlice(badWord string, position token.Pos) {
 	newBadWordMap := make(map[token.Pos]string)
 	newBadWordMap[position] = badWord
@@ -91,25 +143,26 @@ func (v *treeVisitor) addWordToSlice(badWord string, position token.Pos) {
 
 func (v *treeVisitor) Visit(n ast.Node) ast.Visitor {
 	switch n := n.(type) {
-	case *ast.Comment:
-		fmt.Println("I am a Comment", n.Text)
-	case *ast.CommentGroup:
-		fmt.Println("I am a comment Group", n.Text())
+	//case *ast.Comment:
+	//	fmt.Println("I am a Comment", n.Text)
+	//case *ast.CommentGroup:
+	//	fmt.Println("I am a comment Group", n.Text())
 	case *ast.FuncType:
-		for i, val := range n.Params.List {
-			b := isBadWord(val.Names[i].Name)
-			if b {
-				v.addWordToSlice(val.Names[i].Name, n.Pos())
+		val := n.Params
+		for i := 0; i < val.NumFields(); i++ {
+			for _, x := range val.List {
+				for _, n := range x.Names {
+					b := isBadWord(n.String())
+					if b {
+						v.badWordCounter++
+						v.addWordToSlice(n.String(), n.Pos())
+					}
+				}
 			}
-			//For each parameter, check to see if it is a curse word
-			//
 		}
-	case *ast.FuncDecl:
-		fmt.Println("I am a function name-", n.Name.Name)
-		//Names[len(n.Recv.List[len(n.Recv.List)-1].Names)]
-		//fmt.Println("I am a function object name-2", n.Recv.List[len(n.Recv.List)-1])
+	//case *ast.FuncDecl:
+	//	fmt.Println("I am a function name-", n.Name.Name)
 	default:
-		//fmt.Println("Type Not set")
 	}
 	return v
 }
