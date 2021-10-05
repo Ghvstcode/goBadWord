@@ -5,17 +5,15 @@ import (
 	"testing"
 )
 
-type vic struct {
-	name string
-}
-
 //comment test
 //Second Comment
-func Hellosweeties(nameoh, nextnamesssss int, b func(a int)) {
-	vns := "testString"
+func Hellosweeties(kill, nextnamesssss int, b func(a int)) {
+	vns := "testString" + "hiiiiiiiiii"
+	vxns := 3 * 2
 	fmt.Println(vns)
+	fmt.Println(vxns)
 	//b.name = vns
-	nameoh++
+	kill++
 	nextnamesssss++
 }
 
