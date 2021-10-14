@@ -1,10 +1,13 @@
 package analyzer
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/token"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 
@@ -12,29 +15,39 @@ import (
 )
 
 var (
-	flagSet        flag.FlagSet
-	skipTests      bool
-	badwords       string
-	badWordCounter int
-	b              bool
+	flagSet  flag.FlagSet
+	badwords string
+	b        bool
 )
 
 type badWord []map[token.Pos]string
 
 type treeVisitor struct {
-	badWordArray   badWord
-	badWordCounter int
+	badWordArray badWord
+}
+type defaultBadWords []string
+
+func loadDefaultBadWords() string {
+	// Open our jsonFile
+	jsonFile, _ := os.OpenFile("../../badwords.json", os.O_RDWR, 0644)
+
+	defer jsonFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	var result defaultBadWords
+	json.Unmarshal([]byte(byteValue), &result)
+	return strings.Join(result, ", ")
 }
 
 func init() {
-	flagSet.StringVar(&badwords, "bw", "fuck,shit,damn", "e.g. -bw=\"fuck, damn, shit\")")
-	flagSet.BoolVar(&skipTests, "skipTests", false, "should the linter execute on test files as well")
+	v := loadDefaultBadWords()
+	flagSet.StringVar(&badwords, "badWord", v, "Specify the bad word the linter should look out for e.g. -bw=\"fuck, damn, shit\")")
 }
 
 func NewAnalyzer() *analysis.Analyzer {
 	an := &analysis.Analyzer{
 		Name:  "goBadWords",
-		Doc:   "points out occurrence of specified bad words",
+		Doc:   "points out occurrence of swear/specified bad words",
 		Run:   run,
 		Flags: flagSet,
 	}
@@ -62,18 +75,7 @@ func appendWithoutDuplicates(bw badWord, nw map[token.Pos]string) badWord {
 	return bw
 }
 
-//isTestFunc checks if a function is a test function.
-func isTestFunc(n ast.Node) bool {
-	f, ok := n.(*ast.FuncDecl)
-	if !ok {
-		return false
-	}
-
-	return strings.HasPrefix(f.Name.Name, "Test")
-}
-
 func run(pass *analysis.Pass) (interface{}, error) {
-
 	var s badWord
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
@@ -82,10 +84,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			if n == nil {
 				return true
 			}
-			//fmt.Println(val)
-			//if skipTests && isTestFunc(n) {
-			//	return false
-			//}
 
 			for _, valx := range val {
 				//Check for duplicates before appending.
@@ -123,9 +121,10 @@ func checkWords(n ast.Node) badWord {
 func isBadWord(word string) bool {
 	nbw := strings.Split(badwords, ",")
 	for _, rbw := range nbw {
-		if word == rbw {
+		if word == rbw || strings.Contains(word, rbw) {
 			return true
 		}
+
 	}
 	return false
 }
@@ -138,9 +137,7 @@ func (v *treeVisitor) addWordToSlice(badWord string, position token.Pos) {
 
 func (v *treeVisitor) genericCheckAndAdd(word string, position token.Pos) {
 	b = isBadWord(word)
-	fmt.Println(b)
 	if b {
-		badWordCounter++
 		v.addWordToSlice(word, position)
 	}
 }
@@ -244,8 +241,11 @@ func (v *treeVisitor) BinaryExpr(n *ast.BinaryExpr) {
 
 //Comment handles a node that is a comment type
 func (v *treeVisitor) Comment(n *ast.Comment) {
-	cm := strings.Split(n.Text, " ")
+	//fmt.Println("n.Text", n.Text)
+	cm := strings.Split(n.Text, "//")
+
 	for _, cmEl := range cm {
+		fmt.Println(cmEl)
 		v.genericCheckAndAdd(cmEl, n.Pos())
 	}
 

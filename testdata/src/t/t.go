@@ -5,7 +5,9 @@ import (
 	"testing"
 )
 
+//Cunt
 //comment test
+//2 girls 1 cup a55hole
 //Second Comment
 func Hellosweeties(kill, nextnamesssss int, b func(a int)) {
 	vns := "testString" + "hiiiiiiiiii"

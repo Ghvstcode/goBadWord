@@ -17,15 +17,3 @@ func TestAll(t *testing.T) {
 	testdata := filepath.Join(filepath.Dir(filepath.Dir(wd)), "testdata")
 	analysistest.Run(t, testdata, NewAnalyzer(), "t")
 }
-
-//func TestIfTestFunctionsAreSkipped(t *testing.T) {
-//	wd, err := os.Getwd()
-//	if err != nil {
-//		t.Fatalf("Failed to get wd: %s", err)
-//	}
-//
-//	//skipTests = true
-//
-//	testdata := filepath.Join(filepath.Dir(filepath.Dir(wd)), "testdata")
-//	analysistest.Run(t, testdata, NewAnalyzer(), "t")
-//}

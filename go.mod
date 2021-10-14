@@ -1,4 +1,4 @@
-module github.com/Ghvstcode/wc
+module github.com/Ghvstcode/badWord
 
 go 1.16
 
