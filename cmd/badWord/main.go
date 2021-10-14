@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Ghvstcode/badWord/pkg/analyzer"
+	"github.com/Ghvstcode/goBadWord/pkg/analyzer"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 
