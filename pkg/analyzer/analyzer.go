@@ -3,7 +3,6 @@ package analyzer
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"go/ast"
 	"go/token"
 	"io/ioutil"
@@ -17,7 +16,6 @@ import (
 var (
 	flagSet  flag.FlagSet
 	badwords string
-	b        bool
 )
 
 type badWord []map[token.Pos]string
@@ -35,7 +33,7 @@ func loadDefaultBadWords() string {
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var result defaultBadWords
-	json.Unmarshal([]byte(byteValue), &result)
+	_ = json.Unmarshal(byteValue, &result)
 	return strings.Join(result, ", ")
 }
 
@@ -51,7 +49,6 @@ func NewAnalyzer() *analysis.Analyzer {
 		Run:   run,
 		Flags: flagSet,
 	}
-
 	return an
 }
 
@@ -61,16 +58,16 @@ func remove(s badWord, i int) badWord {
 }
 
 func appendWithoutDuplicates(bw badWord, nw map[token.Pos]string) badWord {
-	//Range Over badWord slice.
+	// Range Over badWord slice.
 	for _, el := range bw {
-		//if bad word is equals to new word return s
+		// if bad word is equals to new word return s
 		eq := reflect.DeepEqual(el, nw)
 
 		if eq {
 			return bw
 		}
 	}
-	//if not, append the new word to bad word slice & return it.
+	// if not, append the new word to bad word slice & return it.
 	bw = append(bw, nw)
 	return bw
 }
@@ -86,13 +83,13 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			}
 
 			for _, valx := range val {
-				//Check for duplicates before appending.
+				// Check for duplicates before appending.
 				s = appendWithoutDuplicates(s, valx)
 			}
 			for i, sValx := range s {
 				v, ok := sValx[n.Pos()]
 				if ok {
-					//Remove item from general array
+					// Remove item from general array
 					s = remove(s, i)
 					pass.Reportf(n.Pos(), "Bad Word Found - %s", v)
 				}
@@ -100,7 +97,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 			return true
 		})
 	}
-
 	return nil, nil
 }
 
@@ -111,13 +107,12 @@ func checkWords(n ast.Node) badWord {
 
 	v := treeVisitor{}
 	ast.Walk(&v, n)
-	//fmt.Println(v.badWordArray)
 	return v.badWordArray
 }
 
-//isBadWord Takes in a string, loops through the array of bad words,
-//If the received parameter is in the array return true.
-//Convert String to array that can be looped over.
+// isBadWord Takes in a string, loops through the array of bad words,
+// If the received parameter is in the array return true.
+// Convert String to array that can be looped over.
 func isBadWord(word string) bool {
 	nbw := strings.Split(badwords, ",")
 	for _, rbw := range nbw {
@@ -136,13 +131,14 @@ func (v *treeVisitor) addWordToSlice(badWord string, position token.Pos) {
 }
 
 func (v *treeVisitor) genericCheckAndAdd(word string, position token.Pos) {
+	var b bool
 	b = isBadWord(word)
 	if b {
 		v.addWordToSlice(word, position)
 	}
 }
 
-//Visit visits all nodes.
+// Visit visits all nodes.
 func (v *treeVisitor) Visit(n ast.Node) ast.Visitor {
 	switch n := n.(type) {
 	case *ast.BasicLit:
@@ -226,7 +222,7 @@ func (v *treeVisitor) Visit(n ast.Node) ast.Visitor {
 	return v
 }
 
-//For binary expressions, You will want to escape when specifying a bad word in the terminal
+// For binary expressions, You will want to escape when specifying a bad word in the terminal
 func (v *treeVisitor) BinaryExpr(n *ast.BinaryExpr) {
 	xv, ok := n.X.(*ast.BasicLit)
 	if ok {
@@ -239,19 +235,17 @@ func (v *treeVisitor) BinaryExpr(n *ast.BinaryExpr) {
 
 }
 
-//Comment handles a node that is a comment type
+// Comment handles a node that is a comment type
 func (v *treeVisitor) Comment(n *ast.Comment) {
-	//fmt.Println("n.Text", n.Text)
 	cm := strings.Split(n.Text, "//")
 
 	for _, cmEl := range cm {
-		fmt.Println(cmEl)
 		v.genericCheckAndAdd(cmEl, n.Pos())
 	}
 
 }
 
-//FuncType handles a node which is a functype
+// FuncType handles a node which is a functype
 func (v *treeVisitor) FuncType(n *ast.FuncType) {
 	val := n.Params
 	for i := 0; i < val.NumFields(); i++ {
