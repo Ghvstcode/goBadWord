@@ -39,13 +39,13 @@ func loadDefaultBadWords() string {
 
 func init() {
 	v := loadDefaultBadWords()
-	flagSet.StringVar(&badwords, "badWord", v, "Specify the bad word the linter should look out for e.g. -bw=\"fuck, damn, shit\")")
+	flagSet.StringVar(&badwords, "badWords", v, "Specify the bad word the linter should look out for e.g. -badWord=\"fuck, damn, shit\")")
 }
 
 func NewAnalyzer() *analysis.Analyzer {
 	an := &analysis.Analyzer{
 		Name:  "goBadWords",
-		Doc:   "points out occurrence of swear/specified bad words",
+		Doc:   "Find occurrence of curse words or specified bad words",
 		Run:   run,
 		Flags: flagSet,
 	}
