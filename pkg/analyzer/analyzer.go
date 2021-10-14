@@ -39,7 +39,7 @@ func loadDefaultBadWords() string {
 
 func init() {
 	v := loadDefaultBadWords()
-	flagSet.StringVar(&badwords, "badWords", v, "Specify the bad word the linter should look out for e.g. -badWord=\"fuck, damn, shit\")")
+	flagSet.StringVar(&badwords, "bad-Words", v, "Specify the bad word the linter should look out for e.g. -badWord=\"fuck, damn, shit\")")
 }
 
 func NewAnalyzer() *analysis.Analyzer {
