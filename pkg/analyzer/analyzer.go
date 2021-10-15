@@ -114,7 +114,7 @@ func checkWords(n ast.Node) badWord {
 // If the received parameter is in the array return true.
 // Convert String to array that can be looped over.
 func isBadWord(word string) bool {
-	nbw := strings.Split(badwords, ",")
+	nbw := strings.Split(badwords, ", ")
 	for _, rbw := range nbw {
 		if word == rbw || strings.Contains(word, rbw) {
 			return true
