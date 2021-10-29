@@ -181,7 +181,7 @@ func (v *treeVisitor) Visit(n ast.Node) ast.Visitor {
 			v.genericCheckAndAdd(n.Name, n.Pos())
 		}
 	case *ast.FuncDecl:
-		v.genericCheckAndAdd(n.Name.String(), n.Pos())
+		v.genericCheckAndAdd(n.Name.String(), n.Name.NamePos)
 	case *ast.GoStmt:
 		if n.Pos() != token.NoPos {
 			v.genericCheckAndAdd("go", n.Pos())
